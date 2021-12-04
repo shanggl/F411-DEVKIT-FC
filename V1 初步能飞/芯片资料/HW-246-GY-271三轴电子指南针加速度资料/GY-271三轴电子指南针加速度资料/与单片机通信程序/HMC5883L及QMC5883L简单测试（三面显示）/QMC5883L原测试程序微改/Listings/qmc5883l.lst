@@ -1,0 +1,154 @@
+C51 COMPILER V9.54   QMC5883L                                                              09/03/2016 17:07:49 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE QMC5883L
+OBJECT MODULE PLACED IN .\Objects\qmc5883l.obj
+COMPILER INVOKED BY: h:\Keil_v5\C51\BIN\C51.EXE qmc5883l.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\
+                    -qmc5883l.lst) OBJECT(.\Objects\qmc5883l.obj)
+
+line level    source
+
+   1          #include "reg52.h"
+   2          #include "intrins.h"
+   3          #include "math.h"
+   4          #include "iic.h"
+   5          #include "lcd.h"
+   6          #include "stdio.h"
+   7          
+   8          
+   9          
+  10          u8 ge=0,shi=0,bai=0,qian=0,wan=0;          //显示变量             
+  11          u8 BUF[8]=0;                                             //数据缓冲区
+  12          
+  13          //******************************显示在LCD的数据取位********************************//
+  14          void Conversion(u16 temp_data)  
+  15          {  
+  16   1          wan=temp_data/10000+0x30 ;
+  17   1          temp_data=temp_data%10000;   //取余运算
+  18   1              qian=temp_data/1000+0x30 ;
+  19   1          temp_data=temp_data%1000;    //取余运算
+  20   1          bai=temp_data/100+0x30   ;
+  21   1          temp_data=temp_data%100;     //取余运算
+  22   1          shi=temp_data/10+0x30    ;
+  23   1          temp_data=temp_data%10;      //取余运算
+  24   1          ge=temp_data+0x30;  
+  25   1      }
+  26          
+  27          
+  28          void main()
+  29          {
+  30   1      //      u16 i;
+  31   1              int X=0,Y=0,Z=0;
+  32   1              double Angle_XY=0,Angle_XZ=0,Angle_YZ=0;        
+  33   1          Delay_ms(200);
+  34   1              Init_Lcd();
+  35   1              Init_QMC5883();
+  36   1              Delay_ms(300);
+  37   1              while(1)            
+  38   1              { 
+  39   2                      Multiple_Read_QMC5883();                                //连续读取三轴角度数据，存储在BUF中 
+  40   2                      //---------显示XY轴
+  41   2                      X=BUF[1] << 8 | BUF[0]; //Combine MSB and LSB of X Data output register  最高有效位
+  42   2                      Y=BUF[3] << 8 | BUF[2]; //Combine MSB and LSB of Y Data output register
+  43   2                      Z=BUF[5] << 8 | BUF[4]; //Combine MSB and LSB of Z Data output register
+  44   2                      
+  45   2                      if(X>0x7fff)X-=0xffff;    
+  46   2                      if(Y>0x7fff)Y-=0xffff;
+  47   2                      if(Z>0x7fff)Z-=0xffff;   
+  48   2                      
+  49   2                      Display_One_Char(0,0,'Q');
+  50   2                      Display_One_Char(1,0,'M');
+  51   2                      Display_One_Char(2,0,'C');
+  52   2                      Display_One_Char(3,0,'5');
+  53   2                      Display_One_Char(4,0,'8');
+  54   2                      Display_One_Char(5,0,'8');
+C51 COMPILER V9.54   QMC5883L                                                              09/03/2016 17:07:49 PAGE 2   
+
+  55   2                      Display_One_Char(6,0,'3');
+  56   2      
+  57   2                      Angle_XY= atan2((double)Y,(double)X) * (180 / 3.14159265) + 180; //计算XY平面角度
+  58   2                      Angle_XY*=10;
+  59   2                      Conversion(Angle_XY);       //计算XY平面角度数据和显示
+  60   2                      Display_One_Char(8,0,'X');
+  61   2                      Display_One_Char(9,0,'Y');
+  62   2                      Display_One_Char(10,0,':'); 
+  63   2                      Display_One_Char(11,0,qian); 
+  64   2                      Display_One_Char(12,0,bai); 
+  65   2                      Display_One_Char(13,0,shi); 
+  66   2                      Display_One_Char(14,0,'.'); 
+  67   2                      Display_One_Char(15,0,ge); 
+  68   2                      
+  69   2                      Angle_XZ= atan2((double)Z,(double)X) * (180 / 3.14159265) + 180; //计算XZ平面角度
+  70   2                      Angle_XZ*=10;
+  71   2                      Conversion(Angle_XZ);       //计算XZ平面角度数据和显示
+  72   2                      Display_One_Char(0,1,'X');
+  73   2                      Display_One_Char(1,1,'Z');
+  74   2                      Display_One_Char(2,1,':'); 
+  75   2                      Display_One_Char(3,1,qian); 
+  76   2                      Display_One_Char(4,1,bai); 
+  77   2                      Display_One_Char(5,1,shi); 
+  78   2                      Display_One_Char(6,1,'.'); 
+  79   2                      Display_One_Char(7,1,ge); 
+  80   2                      
+  81   2                      Angle_YZ= atan2((double)Z,(double)Y) * (180 / 3.14159265) + 180; //计算YZ平面角度
+  82   2                      Angle_YZ*=10;
+  83   2                      Conversion(Angle_YZ);       //计算YZ平面角度数据和显示
+  84   2                      Display_One_Char(8,1,'Y');
+  85   2                      Display_One_Char(9,1,'Z');
+  86   2                      Display_One_Char(10,1,':'); 
+  87   2                      Display_One_Char(11,1,qian); 
+  88   2                      Display_One_Char(12,1,bai); 
+  89   2                      Display_One_Char(13,1,shi); 
+  90   2                      Display_One_Char(14,1,'.'); 
+  91   2                      Display_One_Char(15,1,ge); 
+  92   2              
+  93   2                      Delay_ms(100);   //延时                     
+  94   2        }
+  95   1      
+  96   1      
+  97   1      
+  98   1      }
+  99          
+ 100          
+ 101          
+ 102          
+ 103          
+ 104          
+ 105          
+ 106          
+ 107          
+ 108          
+ 109          
+ 110          
+ 111          
+ 112          
+ 113          
+ 114          
+ 115          
+ 116          
+C51 COMPILER V9.54   QMC5883L                                                              09/03/2016 17:07:49 PAGE 3   
+
+ 117          
+ 118          
+ 119          
+ 120          
+ 121          
+ 122          
+ 123          
+ 124          
+ 125          
+ 126          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    845    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     13      18
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,1 @@
+"qmc5883l.c" OPTIMIZE (8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\qmc5883l.lst) OBJECT(.\Objects\qmc5883l.obj)

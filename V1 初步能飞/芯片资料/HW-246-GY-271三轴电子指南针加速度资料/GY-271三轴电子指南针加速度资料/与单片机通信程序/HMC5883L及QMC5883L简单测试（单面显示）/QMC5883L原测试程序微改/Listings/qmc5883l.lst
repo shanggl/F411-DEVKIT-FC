@@ -1,0 +1,116 @@
+C51 COMPILER V9.54   QMC5883L                                                              09/03/2016 10:35:31 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE QMC5883L
+OBJECT MODULE PLACED IN .\Objects\qmc5883l.obj
+COMPILER INVOKED BY: h:\Keil_v5\C51\BIN\C51.EXE qmc5883l.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\
+                    -qmc5883l.lst) OBJECT(.\Objects\qmc5883l.obj)
+
+line level    source
+
+   1          #include "reg52.h"
+   2          #include "intrins.h"
+   3          #include "math.h"
+   4          #include "iic.h"
+   5          #include "lcd.h"
+   6          #include "stdio.h"
+   7          
+   8          
+   9          
+  10          u8 ge=0,shi=0,bai=0,qian=0,wan=0;          //显示变量             
+  11          u8 BUF[8]=0;                                             //数据缓冲区
+  12          
+  13          //******************************显示在LCD的数据取位********************************//
+  14          void Conversion(u16 temp_data)  
+  15          {  
+  16   1          wan=temp_data/10000+0x30 ;
+  17   1          temp_data=temp_data%10000;   //取余运算
+  18   1              qian=temp_data/1000+0x30 ;
+  19   1          temp_data=temp_data%1000;    //取余运算
+  20   1          bai=temp_data/100+0x30   ;
+  21   1          temp_data=temp_data%100;     //取余运算
+  22   1          shi=temp_data/10+0x30    ;
+  23   1          temp_data=temp_data%10;      //取余运算
+  24   1          ge=temp_data+0x30;  
+  25   1      }
+  26          
+  27          
+  28          void main()
+  29          {
+  30   1      //      u16 i;
+  31   1              int x=0,y=0,z=0;
+  32   1              double angle=0; 
+  33   1          Delay_ms(200);
+  34   1              Init_Lcd();
+  35   1              Init_QMC5883();
+  36   1              Delay_ms(300);
+  37   1              while(1)            
+  38   1              { 
+  39   2                      Multiple_Read_QMC5883();                                //连续读取三轴角度数据，存储在BUF中
+  40   2                      //---------显示XY轴
+  41   2                      x=BUF[1] << 8 | BUF[0]; //Combine MSB and LSB of X Data output register  最高有效位
+  42   2                      y=BUF[3] << 8 | BUF[2]; //Combine MSB and LSB of Y Data output register
+  43   2                      z=BUF[5] << 8 | BUF[4]; //Combine MSB and LSB of Z Data output register
+  44   2      
+  45   2                      angle= atan2((double)y,(double)x) * (180 / 3.14159265) + 180; //计算角度
+  46   2                      angle*=10;
+  47   2                      Conversion(angle);       //计算角度数据和显示
+  48   2                      Display_One_Char(2,0,'A'); 
+  49   2                      Display_One_Char(3,0,':'); 
+  50   2                      Display_One_Char(4,0,qian); 
+  51   2                      Display_One_Char(5,0,bai); 
+  52   2                      Display_One_Char(6,0,shi); 
+  53   2                      Display_One_Char(7,0,'.'); 
+  54   2                      Display_One_Char(8,0,ge); 
+C51 COMPILER V9.54   QMC5883L                                                              09/03/2016 10:35:31 PAGE 2   
+
+  55   2              
+  56   2      
+  57   2                      Delay_ms(100);   //延时                     
+  58   2        }
+  59   1      
+  60   1      
+  61   1      
+  62   1      }
+  63          
+  64          
+  65          
+  66          
+  67          
+  68          
+  69          
+  70          
+  71          
+  72          
+  73          
+  74          
+  75          
+  76          
+  77          
+  78          
+  79          
+  80          
+  81          
+  82          
+  83          
+  84          
+  85          
+  86          
+  87          
+  88          
+  89          
+  90          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    362    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     13      10
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

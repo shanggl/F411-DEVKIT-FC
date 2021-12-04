@@ -1,0 +1,6 @@
+".\Objects\STARTUP.obj",
+".\Objects\qmc5883l.obj",
+".\Objects\lcd.obj",
+".\Objects\iic.obj" 
+TO ".\Objects\QMC5883L" 
+PRINT(".\Listings\QMC5883L.m51") RAMSIZE(256) 

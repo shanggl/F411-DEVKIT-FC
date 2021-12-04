@@ -1,0 +1,427 @@
+C51 COMPILER V9.54   5883                                                                  09/03/2016 17:07:34 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE 5883
+OBJECT MODULE PLACED IN 5883.OBJ
+COMPILER INVOKED BY: h:\Keil_v5\C51\BIN\C51.EXE 5883.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          //***************************************
+   2          // HMC5883 IIC测试程序
+   3          // 使用单片机STC89C51 
+   4          // 晶振：11.0592M
+   5          // 显示：LCD1602
+   6          // 编译环境 Keil uVision2
+   7          // 参考宏晶网站24c04通信程序
+   8          // 时间：2011年3月1日
+   9          //****************************************
+  10          #include  <REG51.H>     
+  11          #include  <math.h>    //Keil library  
+  12          #include  <stdio.h>   //Keil library    
+  13          #include  <INTRINS.H>
+  14          #define   uchar unsigned char
+  15          #define   uint unsigned int     
+  16          //使用的端口，请按照以下接线
+  17          #define   DataPort P2   //LCD1602数据端口
+  18          sbit    SCL=P1^0;      //IIC时钟引脚定义
+  19          sbit    SDA=P1^1;      //IIC数据引脚定义
+  20          sbit    LCM_RS=P0^7;   //LCD1602命令端口                
+  21          sbit    LCM_RW=P0^6;   //LCD1602命令端口                
+  22          sbit    LCM_EN=P0^5;   //LCD1602命令端口 
+  23          
+  24          #define SlaveAddress   0x3C       //定义器件在IIC总线中的从地址
+  25          typedef unsigned char BYTE;
+  26          typedef unsigned short WORD;
+  27          
+  28          BYTE BUF[8];                         //接收数据缓存区           
+  29          uchar ge,shi,bai,qian,wan;           //显示变量
+  30          //int  dis_data;                       //变量
+  31          
+  32          void delay_ms(unsigned int t);
+  33          void InitLcd();
+  34          void Init_HMC5883(void);            //初始化5883
+  35          
+  36          void WriteDataLCM(uchar dataW);
+  37          void WriteCommandLCM(uchar CMD,uchar Attribc);
+  38          void DisplayOneChar(uchar X,uchar Y,uchar DData);
+  39          void conversion(uint temp_data);
+  40          
+  41          void  Single_Write_HMC5883(uchar REG_Address,uchar REG_data);   //单个写入数据
+  42          //uchar Single_Read_HMC5883(uchar REG_Address);                 /单个读取内部寄存器数据
+  43          void  Multiple_Read_HMC5883();                                  //连续的读取内部寄存器数据
+  44          //以下是模拟iic使用函数-------------
+  45          void Delay5us();
+  46          void Delay5ms();
+  47          void HMC5883_Start();
+  48          void HMC5883_Stop();
+  49          void HMC5883_SendACK(bit ack);
+  50          bit  HMC5883_RecvACK();
+  51          void HMC5883_SendByte(BYTE dat);
+  52          BYTE HMC5883_RecvByte();
+  53          void HMC5883_ReadPage();
+  54          void HMC5883_WritePage();
+  55          //-----------------------------------
+C51 COMPILER V9.54   5883                                                                  09/03/2016 17:07:34 PAGE 2   
+
+  56          
+  57          //*************************显示在LCD的数据********************************
+  58          void Conversion(uint temp_data)  
+  59          {  
+  60   1          wan=temp_data/10000+0x30 ;
+  61   1          temp_data=temp_data%10000;   //取余运算
+  62   1              qian=temp_data/1000+0x30 ;
+  63   1          temp_data=temp_data%1000;    //取余运算
+  64   1          bai=temp_data/100+0x30   ;
+  65   1          temp_data=temp_data%100;     //取余运算
+  66   1          shi=temp_data/10+0x30    ;
+  67   1          temp_data=temp_data%10;      //取余运算
+  68   1          ge=temp_data+0x30;  
+  69   1      }
+  70          
+  71          /**************延时函数*****************/
+  72          void Delay_ms(unsigned int t)   
+  73          {                                               
+  74   1              unsigned int i,j;                               
+  75   1              for(i=t;i>0;i--)
+  76   1              for(j=121;j>0;j--);                                             
+  77   1      }
+  78          /***************等待LCD使能****************/
+  79          void WaitForEnable(void)        
+  80          {                                       
+  81   1              DataPort=0xff;          
+  82   1              LCM_RS=0;
+  83   1              LCM_RW=1;
+  84   1              _nop_();
+  85   1              LCM_EN=1;
+  86   1              _nop_();
+  87   1              _nop_();
+  88   1              while(DataPort&0x80);   
+  89   1              LCM_EN=0;                               
+  90   1      }                                       
+  91          /**************写LCD内存命令函数*****************/
+  92          void WriteCommandLCM(uchar CMD,uchar Attribc)
+  93          {                                       
+  94   1              if(Attribc)WaitForEnable();     
+  95   1              LCM_RS=0;
+  96   1              LCM_RW=0;
+  97   1              _nop_();
+  98   1              DataPort=CMD;
+  99   1              _nop_();        
+ 100   1              LCM_EN=1;
+ 101   1              _nop_();
+ 102   1              _nop_();
+ 103   1              LCM_EN=0;
+ 104   1      }                                       
+ 105          /**************写LCD数据寄存器*****************/
+ 106          void WriteDataLCM(uchar dataW)
+ 107          {                                       
+ 108   1              WaitForEnable();                
+ 109   1              LCM_RS=1;
+ 110   1              LCM_RW=0;
+ 111   1              _nop_();
+ 112   1              DataPort=dataW;
+ 113   1              _nop_();        
+ 114   1              LCM_EN=1;
+ 115   1              _nop_();
+ 116   1              _nop_();
+ 117   1              LCM_EN=0;
+C51 COMPILER V9.54   5883                                                                  09/03/2016 17:07:34 PAGE 3   
+
+ 118   1      }               
+ 119          /****************初始化LCD*******************/
+ 120          void InitLcd()                          
+ 121          {                       
+ 122   1              WriteCommandLCM(0x38,1);        
+ 123   1              WriteCommandLCM(0x08,1);        
+ 124   1              WriteCommandLCM(0x01,1);        
+ 125   1              WriteCommandLCM(0x06,1);        
+ 126   1              WriteCommandLCM(0x0c,1);
+ 127   1      }                       
+ 128          /****************显示一个字符*******************/
+ 129          void Display_One_Char(uchar X,uchar Y,uchar DData)
+ 130          {                                               
+ 131   1              Y&=1;                                           
+ 132   1              X&=15;                                          
+ 133   1              if(Y)X|=0x40;                                   
+ 134   1              X|=0x80;                        
+ 135   1              WriteCommandLCM(X,0);           
+ 136   1              WriteDataLCM(DData);            
+ 137   1      }                                               
+ 138          
+ 139          /**************************************
+ 140          延时5微秒(STC90C52RC@12M)
+ 141          不同的工作环境,需要调整此函数，注意时钟过快时需要修改
+ 142          当改用1T的MCU时,请调整此延时函数
+ 143          **************************************/
+ 144          void Delay5us()
+ 145          {
+ 146   1              _nop_();_nop_();_nop_();_nop_();
+ 147   1              _nop_();_nop_();_nop_();_nop_();
+ 148   1              _nop_();_nop_();_nop_();_nop_();
+ 149   1              _nop_();_nop_();_nop_();_nop_();
+ 150   1              _nop_();_nop_();_nop_();_nop_();
+ 151   1              _nop_();_nop_();_nop_();_nop_();
+ 152   1              _nop_();_nop_();_nop_();_nop_();
+ 153   1              _nop_();_nop_();_nop_();_nop_();
+ 154   1      }
+ 155          
+ 156          /**************************************
+ 157          延时5毫秒(STC90C52RC@12M)
+ 158          不同的工作环境,需要调整此函数
+ 159          当改用1T的MCU时,请调整此延时函数
+ 160          **************************************/
+ 161          void Delay5ms()
+ 162          {
+ 163   1          WORD n = 560;
+ 164   1      
+ 165   1          while (n--);
+ 166   1      }
+ 167          
+ 168          /**************************************
+ 169          起始信号
+ 170          **************************************/
+ 171          void HMC5883_Start()
+ 172          {
+ 173   1          SDA = 1;                    //拉高数据线
+ 174   1          SCL = 1;                    //拉高时钟线
+ 175   1          Delay5us();                 //延时
+ 176   1          SDA = 0;                    //产生下降沿
+ 177   1          Delay5us();                 //延时
+ 178   1          SCL = 0;                    //拉低时钟线
+ 179   1      }
+C51 COMPILER V9.54   5883                                                                  09/03/2016 17:07:34 PAGE 4   
+
+ 180          
+ 181          /**************************************
+ 182          停止信号
+ 183          **************************************/
+ 184          void HMC5883_Stop()
+ 185          {
+ 186   1          SDA = 0;                    //拉低数据线
+ 187   1          SCL = 1;                    //拉高时钟线
+ 188   1          Delay5us();                 //延时
+ 189   1          SDA = 1;                    //产生上升沿
+ 190   1          Delay5us();                 //延时
+ 191   1      }
+ 192          
+ 193          /**************************************
+ 194          发送应答信号
+ 195          入口参数:ack (0:ACK 1:NAK)
+ 196          **************************************/
+ 197          void HMC5883_SendACK(bit ack)
+ 198          {
+ 199   1          SDA = ack;                  //写应答信号
+ 200   1          SCL = 1;                    //拉高时钟线
+ 201   1          Delay5us();                 //延时
+ 202   1          SCL = 0;                    //拉低时钟线
+ 203   1          Delay5us();                 //延时
+ 204   1      }
+ 205          
+ 206          /**************************************
+ 207          接收应答信号
+ 208          **************************************/
+ 209          bit HMC5883_RecvACK()
+ 210          {
+ 211   1          SCL = 1;                    //拉高时钟线
+ 212   1          Delay5us();                 //延时
+ 213   1          CY = SDA;                   //读应答信号
+ 214   1          SCL = 0;                    //拉低时钟线
+ 215   1          Delay5us();                 //延时
+ 216   1      
+ 217   1          return CY;
+ 218   1      }
+ 219          
+ 220          /**************************************
+ 221          向IIC总线发送一个字节数据
+ 222          **************************************/
+ 223          void HMC5883_SendByte(BYTE dat)
+ 224          {
+ 225   1          BYTE i;
+ 226   1      
+ 227   1          for (i=0; i<8; i++)         //8位计数器
+ 228   1          {
+ 229   2              dat <<= 1;              //移出数据的最高位
+ 230   2              SDA = CY;               //送数据口
+ 231   2              SCL = 1;                //拉高时钟线
+ 232   2              Delay5us();             //延时
+ 233   2              SCL = 0;                //拉低时钟线
+ 234   2              Delay5us();             //延时
+ 235   2          }
+ 236   1          HMC5883_RecvACK();
+ 237   1      }
+ 238          
+ 239          /**************************************
+ 240          从IIC总线接收一个字节数据
+ 241          **************************************/
+C51 COMPILER V9.54   5883                                                                  09/03/2016 17:07:34 PAGE 5   
+
+ 242          BYTE HMC5883_RecvByte()
+ 243          {
+ 244   1          BYTE i;
+ 245   1          BYTE dat = 0;
+ 246   1      
+ 247   1          SDA = 1;                    //使能内部上拉,准备读取数据,
+ 248   1          for (i=0; i<8; i++)         //8位计数器
+ 249   1          {
+ 250   2              dat <<= 1;
+ 251   2              SCL = 1;                //拉高时钟线
+ 252   2              Delay5us();             //延时
+ 253   2              dat |= SDA;             //读数据               
+ 254   2              SCL = 0;                //拉低时钟线
+ 255   2              Delay5us();             //延时
+ 256   2          }
+ 257   1          return dat;
+ 258   1      }
+ 259          
+ 260          //************************写入单字节数据***************************
+ 261          
+ 262          void Single_Write_HMC5883(uchar REG_Address,uchar REG_data)
+ 263          {
+ 264   1          HMC5883_Start();                  //起始信号
+ 265   1          HMC5883_SendByte(SlaveAddress);   //发送设备地址+写信号
+ 266   1          HMC5883_SendByte(REG_Address);    //内部寄存器地址，请参考中文pdf 
+ 267   1          HMC5883_SendByte(REG_data);       //内部寄存器数据，请参考中文pdf
+ 268   1          HMC5883_Stop();                   //发送停止信号
+ 269   1      }
+ 270          
+ 271          //************************读取内部寄存器*************************
+ 272          //uchar Single_Read_HMC5883(uchar REG_Address)
+ 273          //{   
+ 274          //      uchar REG_data;
+ 275          //  HMC5883_Start();                          //起始信号
+ 276          //  HMC5883_SendByte(SlaveAddress);           //发送设备地址+写信号
+ 277          //  HMC5883_SendByte(REG_Address);            //发送存储单元地址，从0开始       
+ 278          //  HMC5883_Start();                          //起始信号
+ 279          //  HMC5883_SendByte(SlaveAddress+1);         //发送设备地址+读信号
+ 280          //  REG_data=HMC5883_RecvByte();              //读出寄存器数据
+ 281          //      HMC5883_SendACK(1);   
+ 282          //      HMC5883_Stop();                           //停止信号
+ 283          //  return REG_data; 
+ 284          //}
+ 285          
+ 286          //******************************************************
+ 287          //连续读出HMC5883内部角度数据，地址范围0x3~0x5
+ 288          //******************************************************
+ 289          void Multiple_Read_HMC5883(void)
+ 290          {   uchar i;
+ 291   1          HMC5883_Start();                          //起始信号
+ 292   1          HMC5883_SendByte(SlaveAddress);           //发送设备地址+写信号
+ 293   1          HMC5883_SendByte(0x03);                   //发送存储单元地址，从0x3开始     
+ 294   1          HMC5883_Start();                          //起始信号
+ 295   1          HMC5883_SendByte(SlaveAddress+1);         //发送设备地址+读信号
+ 296   1               for (i=0; i<6; i++)                      //连续读取6个地址数据，存储中BUF
+ 297   1          {
+ 298   2              BUF[i] = HMC5883_RecvByte();          //BUF[0]存储数据
+ 299   2              if (i == 5)
+ 300   2              {
+ 301   3                 HMC5883_SendACK(1);                //最后一个数据需要回NOACK
+ 302   3              }
+ 303   2              else
+C51 COMPILER V9.54   5883                                                                  09/03/2016 17:07:34 PAGE 6   
+
+ 304   2              {
+ 305   3                HMC5883_SendACK(0);                //回应ACK
+ 306   3             }
+ 307   2         }
+ 308   1          HMC5883_Stop();                          //停止信号
+ 309   1          Delay5ms();
+ 310   1      }
+ 311          
+ 312          //初始化HMC5883，根据需要请参考pdf进行修改****
+ 313          void Init_HMC5883()
+ 314          {
+ 315   1           Single_Write_HMC5883(0x02,0x00);  //
+ 316   1      }
+ 317          //*********************************************************
+ 318          //主程序********
+ 319          //*********************************************************
+ 320          void main()
+ 321          {
+ 322   1              // bit sign_bit;
+ 323   1              unsigned int i;
+ 324   1              int X,Y,Z;
+ 325   1              double Angle_XY=0,Angle_XZ=0,Angle_YZ=0;
+ 326   1      
+ 327   1              Delay_ms(500);                  
+ 328   1              InitLcd();
+ 329   1              Init_HMC5883();
+ 330   1              while(1)            //循环
+ 331   1              { 
+ 332   2                      Multiple_Read_HMC5883();      //连续读出数据，存储在BUF中
+ 333   2      //---------显示X轴
+ 334   2                      X=BUF[0] << 8 | BUF[1]; //Combine MSB and LSB of X Data output register  最高有效位
+ 335   2                      Z=BUF[2] << 8 | BUF[3]; //Combine MSB and LSB of Z Data output register
+ 336   2                      Y=BUF[4] << 8 | BUF[5]; //Combine MSB and LSB of Y Data output register
+ 337   2      
+ 338   2                      if(X>0x7fff)X-=0xffff;    
+ 339   2                      if(Y>0x7fff)Y-=0xffff;
+ 340   2                      if(Z>0x7fff)Z-=0xffff;
+ 341   2                      
+ 342   2                      Display_One_Char(0,0,'H');
+ 343   2                      Display_One_Char(1,0,'M');
+ 344   2                      Display_One_Char(2,0,'C');
+ 345   2                      Display_One_Char(3,0,'5');
+ 346   2                      Display_One_Char(4,0,'8');
+ 347   2                      Display_One_Char(5,0,'8');
+ 348   2                      Display_One_Char(6,0,'3');
+ 349   2      
+ 350   2                      Angle_XY= atan2((double)Y,(double)X) * (180 / 3.14159265) + 180; //计算XY平面角度
+ 351   2                      Angle_XY*=10;
+ 352   2                      Conversion(Angle_XY);       //计算XY平面角度数据和显示
+ 353   2                      Display_One_Char(8,0,'X');
+ 354   2                      Display_One_Char(9,0,'Y');
+ 355   2                      Display_One_Char(10,0,':'); 
+ 356   2                      Display_One_Char(11,0,qian); 
+ 357   2                      Display_One_Char(12,0,bai); 
+ 358   2                      Display_One_Char(13,0,shi); 
+ 359   2                      Display_One_Char(14,0,'.'); 
+ 360   2                      Display_One_Char(15,0,ge); 
+ 361   2                      
+ 362   2                      Angle_XZ= atan2((double)Z,(double)X) * (180 / 3.14159265) + 180; //计算XZ平面角度
+ 363   2                      Angle_XZ*=10;
+ 364   2                      Conversion(Angle_XZ);       //计算XZ平面角度数据和显示
+ 365   2                      Display_One_Char(0,1,'X');
+C51 COMPILER V9.54   5883                                                                  09/03/2016 17:07:34 PAGE 7   
+
+ 366   2                      Display_One_Char(1,1,'Z');
+ 367   2                      Display_One_Char(2,1,':'); 
+ 368   2                      Display_One_Char(3,1,qian); 
+ 369   2                      Display_One_Char(4,1,bai); 
+ 370   2                      Display_One_Char(5,1,shi); 
+ 371   2                      Display_One_Char(6,1,'.'); 
+ 372   2                      Display_One_Char(7,1,ge); 
+ 373   2                      
+ 374   2                      Angle_YZ= atan2((double)Z,(double)Y) * (180 / 3.14159265) + 180; //计算YZ平面角度
+ 375   2                      Angle_YZ*=10;
+ 376   2                      Conversion(Angle_YZ);       //计算YZ平面角度数据和显示
+ 377   2                      Display_One_Char(8,1,'Y');
+ 378   2                      Display_One_Char(9,1,'Z');
+ 379   2                      Display_One_Char(10,1,':'); 
+ 380   2                      Display_One_Char(11,1,qian); 
+ 381   2                      Display_One_Char(12,1,bai); 
+ 382   2                      Display_One_Char(13,1,shi); 
+ 383   2                      Display_One_Char(14,1,'.'); 
+ 384   2                      Display_One_Char(15,1,ge); 
+ 385   2      
+ 386   2          for (i=0;i<10000;i++);   //延时                   
+ 387   2        }
+ 388   1      } 
+ 389          
+ 390          
+ 391          
+ 392          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1230    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     13      20
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

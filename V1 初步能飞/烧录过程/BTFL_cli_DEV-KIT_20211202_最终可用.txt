@@ -1,0 +1,153 @@
+# 
+
+# diff bare
+
+# version
+# Betaflight / STM32F411 (S411) 4.2.11 Nov 25 2021 / 15:10:02 (norevision) MSP API: 1.43
+###ERROR: diff: NO CONFIG FOUND###
+board_name MATEKF411
+manufacturer_id MTKS
+
+# name: DEV-KIT
+
+# resources
+resource BEEPER 1 B02
+resource MOTOR 1 B07
+resource MOTOR 2 B06
+resource MOTOR 3 B04
+resource MOTOR 4 B05
+resource MOTOR 5 B03
+resource MOTOR 6 B10
+resource PPM 1 A03
+resource LED_STRIP 1 A08
+resource SERIAL_TX 1 A09
+resource SERIAL_TX 2 A02
+resource SERIAL_TX 6 A00
+resource SERIAL_RX 1 A10
+resource SERIAL_RX 2 A03
+resource I2C_SCL 1 B08
+resource I2C_SDA 1 B09
+resource LED 1 C13
+resource SPI_SCK 1 A05
+resource SPI_SCK 2 B13
+resource SPI_MISO 1 A06
+resource SPI_MISO 2 B14
+resource SPI_MOSI 1 A07
+resource SPI_MOSI 2 B15
+resource ADC_BATT 1 B00
+resource ADC_CURR 1 B01
+resource OSD_CS 1 B12
+resource GYRO_EXTI 1 A01
+resource GYRO_CS 1 A04
+resource USB_DETECT 1 C15
+
+# timer
+timer A03 AF3
+# pin A03: TIM9 CH2 (AF3)
+timer B04 AF2
+# pin B04: TIM3 CH1 (AF2)
+timer B05 AF2
+# pin B05: TIM3 CH2 (AF2)
+timer B06 AF2
+# pin B06: TIM4 CH1 (AF2)
+timer B07 AF2
+# pin B07: TIM4 CH2 (AF2)
+timer B03 AF1
+# pin B03: TIM2 CH2 (AF1)
+timer B10 AF1
+# pin B10: TIM2 CH3 (AF1)
+timer A00 AF2
+# pin A00: TIM5 CH1 (AF2)
+timer A02 AF2
+# pin A02: TIM5 CH3 (AF2)
+timer A08 AF1
+# pin A08: TIM1 CH1 (AF1)
+
+# dma
+dma ADC 1 1
+# ADC 1: DMA2 Stream 4 Channel 0
+dma pin B04 0
+# pin B04: DMA1 Stream 4 Channel 5
+dma pin B05 0
+# pin B05: DMA1 Stream 5 Channel 5
+dma pin B06 0
+# pin B06: DMA1 Stream 0 Channel 2
+dma pin B07 0
+# pin B07: DMA1 Stream 3 Channel 2
+dma pin B03 0
+# pin B03: DMA1 Stream 6 Channel 3
+dma pin B10 0
+# pin B10: DMA1 Stream 1 Channel 3
+dma pin A00 0
+# pin A00: DMA1 Stream 2 Channel 6
+dma pin A02 0
+# pin A02: DMA1 Stream 0 Channel 6
+dma pin A08 0
+# pin A08: DMA2 Stream 6 Channel 0
+
+# feature
+feature -RX_PARALLEL_PWM
+feature RX_SERIAL
+feature SOFTSERIAL
+feature GPS
+feature TELEMETRY
+feature OSD
+
+# serial
+serial 0 64 115200 57600 0 115200
+serial 1 2 115200 57600 0 115200
+serial 5 2048 115200 57600 0 115200
+
+# vtxtable
+vtxtable bands 6
+vtxtable channels 8
+vtxtable band 1 BOSCAM_A A FACTORY 5865 5845 5825 5805 5785 5765 5745 5725
+vtxtable band 2 BOSCAM_B B FACTORY 5733 5752 5771 5790 5809 5828 5847 5866
+vtxtable band 3 BOSCAM_E E FACTORY 5705 5685 5665    0 5885 5905    0    0
+vtxtable band 4 FATSHARK F FACTORY 5740 5760 5780 5800 5820 5840 5860 5880
+vtxtable band 5 RACEBAND R FACTORY 5658 5695 5732 5769 5806 5843 5880 5917
+vtxtable band 6 IMD6     I CUSTOM  5732 5765 5828 5840 5866 5740    0    0
+vtxtable powerlevels 3
+vtxtable powervalues 0 1 2
+vtxtable powerlabels 25 200 500
+
+# master
+set acc_calibration = -66,-66,-117,1
+set mag_bustype = I2C
+set mag_i2c_device = 1
+set mag_hardware = NONE
+set baro_bustype = I2C
+set baro_i2c_device = 1
+set baro_hardware = NONE
+set serialrx_provider = CRSF
+set dshot_burst = AUTO
+set dshot_bitbang = OFF
+set motor_pwm_protocol = DSHOT600
+set current_meter = ADC
+set battery_meter = ADC
+set beeper_inversion = ON
+set beeper_od = OFF
+set yaw_motors_reversed = ON
+set gps_sbas_mode = AUTO
+set gps_auto_baud = ON
+set pid_process_denom = 1
+set osd_link_quality_pos = 2497
+set osd_crosshairs_pos = 2253
+set osd_gps_lon_pos = 421
+set osd_warnings_pos = 14761
+set osd_avg_cell_voltage_pos = 2433
+set system_hse_mhz = 25
+set cpu_overclock = 120MHZ
+set max7456_spi_bus = 2
+set gyro_1_bustype = SPI
+set gyro_1_spibus = 1
+set gyro_1_sensor_align = CW180FLIP
+set gyro_1_align_pitch = 1800
+set gyro_1_align_yaw = 1800
+set name = DEV-KIT
+
+profile 0
+
+rateprofile 0
+
+# 
